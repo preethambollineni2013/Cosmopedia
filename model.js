@@ -1,65 +1,79 @@
-const stopWords = new Set([
-  "a", "an", "the", "is", "are", "of", "in", "on", "to", "what", "how",
-  "who", "which", "where", "tell", "me", "about", "and", "or", "for", "with"
-]);
+
+const skipWords = ["a", "an", "the", "is", "are", "of", "in", "on", "to", "what",
+  "how", "who", "which", "where", "tell", "me", "about", "and", "or", "for", "with"];
 
 function tokenize(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, " ")
-    .split(/\s+/)
-    .filter(word => word && !stopWords.has(word))
-    .map(word => (word.length > 4 ? word.replace(/(ing|ed|es|s)$/, "") : word));
+  const words = text.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(" ");
+  const clean = [];
+
+  for (const word of words) {
+    if (word === "" || skipWords.includes(word)) continue;
+
+
+    if (word.length > 4) {
+      clean.push(word.replace(/(ing|ed|es|s)$/, ""));
+    } else {
+      clean.push(word);
+    }
+  }
+  return clean;
 }
 
-class Astra {
-  constructor() {
-    this.wordCounts = {};
-    this.totalWords = {};
-    this.phraseCounts = {};
-    this.vocabulary = new Set();
-    this.totalPhrases = 0;
-  }
+const astra = {
+  wordCounts: {},
+  wordTotals: {},
+  phraseTotals: {},
+  vocab: {},
+  allPhrases: 0,
+
 
   train(data) {
     for (const topic in data) {
       this.wordCounts[topic] = {};
-      this.totalWords[topic] = 0;
-      this.phraseCounts[topic] = data[topic].length;
+      this.wordTotals[topic] = 0;
+      this.phraseTotals[topic] = data[topic].length;
 
       for (const phrase of data[topic]) {
-        this.totalPhrases++;
+        this.allPhrases++;
         for (const word of tokenize(phrase)) {
           this.wordCounts[topic][word] = (this.wordCounts[topic][word] || 0) + 1;
-          this.totalWords[topic]++;
-          this.vocabulary.add(word);
+          this.wordTotals[topic]++;
+          this.vocab[word] = true;
         }
       }
     }
-  }
+  },
 
+ 
   predict(text) {
-    const words = tokenize(text).filter(word => this.vocabulary.has(word));
+    const words = tokenize(text).filter(w => this.vocab[w]);
+    const vocabSize = Object.keys(this.vocab).length;
+    const results = [];
 
-    const scores = Object.keys(this.wordCounts).map(topic => {
-      let score = Math.log(this.phraseCounts[topic] / this.totalPhrases);
+    for (const topic in this.wordCounts) {
+    
+      let score = Math.log(this.phraseTotals[topic] / this.allPhrases);
+
       for (const word of words) {
-        const count = this.wordCounts[topic][word] || 0;
-        score += Math.log((count + 0.5) / (this.totalWords[topic] + 0.5 * this.vocabulary.size));
+        const seen = this.wordCounts[topic][word] || 0;
+        
+        score += Math.log((seen + 0.5) / (this.wordTotals[topic] + 0.5 * vocabSize));
       }
-      return { topic, score };
-    });
+      results.push({ topic: topic, score: score });
+    }
 
-    const best = Math.max(...scores.map(item => item.score));
-    const weights = scores.map(item => Math.exp(item.score - best));
-    const total = weights.reduce((sum, value) => sum + value, 0);
+    
+    const best = Math.max(...results.map(r => r.score));
+    let total = 0;
+    for (const r of results) {
+      r.weight = Math.exp(r.score - best);
+      total += r.weight;
+    }
 
-    return scores
-      .map((item, index) => ({ topic: item.topic, confidence: weights[index] / total }))
+    return results
+      .map(r => ({ topic: r.topic, confidence: r.weight / total }))
       .sort((a, b) => b.confidence - a.confidence);
   }
-}
+};
 
-const astra = new Astra();
 astra.train(trainingData);
-
