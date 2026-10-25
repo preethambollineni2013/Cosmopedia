@@ -1,0 +1,192 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #000 url("../images/space.png") center / cover fixed no-repeat;
+  color: #eee;
+  font: 16px/1.6 system-ui, sans-serif;
+}
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 16px 16px;
+}
+
+h1 {
+  text-align: center;
+  font-size: 34px;
+  margin: 0 0 20px;
+}
+
+.subtitle {
+  margin: -14px 0 20px;
+  text-align: center;
+  font-size: 14px;
+  color: #aaa;
+}
+
+form {
+  display: flex;
+  gap: 8px;
+}
+
+input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  font-size: 16px;
+  color: #fff;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 12px;
+}
+
+button {
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: #3f6bff;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.status {
+  color: #999;
+  text-align: center;
+  margin-top: 32px;
+}
+
+.article {
+  margin-top: 24px;
+  padding: 16px;
+  background: #0a0a0a;
+  border: 1px solid #222;
+  border-radius: 16px;
+}
+
+.article::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+.article h2,
+.article h3 {
+  font-weight: 650;
+}
+
+.article h2 {
+  font-size: 28px;
+  margin: 0;
+}
+
+.article h3 {
+  margin: 24px 0 8px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7aa0ff;
+}
+
+.article a {
+  color: #7aa0ff;
+}
+
+.meta {
+  margin: 4px 0 12px;
+  font-size: 13px;
+  color: #999;
+}
+
+.facts {
+  float: right;
+  width: 46%;
+  margin: 4px 0 12px 14px;
+  font-size: 13px;
+  border-collapse: collapse;
+  background: #141414;
+  border: 1px solid #222;
+}
+
+.facts caption {
+  padding: 4px;
+  font-weight: 700;
+  background: #222;
+}
+
+.facts th,
+.facts td {
+  padding: 4px 6px;
+  border-top: 1px solid #222;
+  vertical-align: top;
+  text-align: left;
+}
+
+.facts th {
+  width: 38%;
+  color: #999;
+}
+
+.facts img,
+.wide {
+  width: 100%;
+  border-radius: 6px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip,
+.chips button {
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #7aa0ff;
+  background: #141414;
+  border: 1px solid #222;
+  border-radius: 99px;
+  text-decoration: none;
+}
+
+.source {
+  margin-left: 6px;
+  padding: 2px 8px;
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #aaa;
+  background: #1a1a1a;
+  border-radius: 99px;
+}
+
+footer {
+  padding: 28px 16px;
+  text-align: center;
+  background: #000;
+}
+
+.copyright {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #888;
+}
+
+.builder {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #888;
+}
