@@ -7,7 +7,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #000 url("../images/space.png") center / cover fixed no-repeat;
+  background: #000 url("images/space.png") center / cover fixed no-repeat;
   color: #eee;
   font: 16px/1.6 system-ui, sans-serif;
 }
