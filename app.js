@@ -2,7 +2,11 @@ const searchForm = document.getElementById("search-form");
 const searchInput = document.getElementById("query");
 const resultContainer = document.getElementById("result");
 
-let searchResults = [];
+const RESULTS_PER_PAGE = 20;
+
+let searchResults = [];   // [{ title, description, isDisambiguation }]
+let visibleCount = RESULTS_PER_PAGE;
+let lastQuery = "";
 let activePrediction = null;
 
 function escapeHtml(text) {
@@ -24,6 +28,42 @@ function buildFactRow(label, values) {
 function getAgencySearchUrl(agency, title) {
   return `https://duckduckgo.com/?q=${encodeURIComponent(`site:${agency.site} ${title}`)}`;
 }
+
+/* ---------- Results list ---------- */
+
+function renderResultsList() {
+  const total = searchResults.length;
+  const shown = searchResults.slice(0, visibleCount);
+
+  const items = shown.map(item => {
+    const description = item.description
+      ? `<span class="result-desc">${escapeHtml(item.description)}</span>`
+      : "";
+    const note = item.isDisambiguation ? `<span class="result-desc">Disambiguation page</span>` : "";
+    return `
+      <li>
+        <button class="result-item" data-title="${escapeHtml(item.title)}">
+          <span class="result-title">${escapeHtml(item.title)}</span>
+          ${description || note}
+        </button>
+      </li>`;
+  }).join("");
+
+  const loadMore = total > visibleCount
+    ? `<button class="load-more" data-more="true">Show more (${total - visibleCount} remaining)</button>`
+    : "";
+
+  resultContainer.innerHTML = `
+    <section class="results">
+      <h2>${total} result${total === 1 ? "" : "s"} for “${escapeHtml(lastQuery)}”</h2>
+      <p class="meta">Showing ${shown.length} of ${total}. Click a result to open it.</p>
+      <ul class="results-list">${items}</ul>
+      ${loadMore}
+    </section>
+  `;
+}
+
+/* ---------- Article ---------- */
 
 function renderArticle(summary, nasaData, facts, relatedTitles) {
   const title = summary.title;
@@ -67,24 +107,29 @@ function renderArticle(summary, nasaData, facts, relatedTitles) {
     `;
   }
 
-  const officialLinks = agencies.map(agency => 
+  const officialLinks = agencies.map(agency =>
     `<a class="chip link" href="${getAgencySearchUrl(agency, title)}" target="_blank" rel="noopener">${agency.name}</a>`
   ).join("");
 
   let relatedSection = "";
   if (relatedTitles.length > 0) {
-    const relatedButtons = relatedTitles.map(item => 
+    const relatedButtons = relatedTitles.map(item =>
       `<button data-title="${escapeHtml(item)}">${escapeHtml(item)}</button>`
     ).join("");
     relatedSection = `<h3>See also</h3><div class="chips">${relatedButtons}</div>`;
   }
 
-  const wikidataLink = summary.wikibase_item ? 
+  const wikidataLink = summary.wikibase_item ?
     `<li><a href="https://www.wikidata.org/wiki/${escapeHtml(summary.wikibase_item)}" target="_blank" rel="noopener">Wikidata</a></li>` : "";
 
   const wikipediaUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
 
+  const backButton = searchResults.length > 1
+    ? `<button class="back" data-back="true">← Back to ${searchResults.length} results</button>`
+    : "";
+
   return `
+    ${backButton}
     <article class="article">
       <h2>${escapeHtml(title)}</h2>
       <p class="meta">Astra topic: ${escapeHtml(topicDisplay)}</p>
@@ -108,7 +153,7 @@ function renderArticle(summary, nasaData, facts, relatedTitles) {
 }
 
 async function showArticle(title) {
-  resultContainer.innerHTML = '<p class="status">Searching…</p>';
+  resultContainer.innerHTML = '<p class="status">Loading…</p>';
 
   try {
     const summary = await getSummary(title);
@@ -116,8 +161,9 @@ async function showArticle(title) {
     const facts = await getWikidata(summary.wikibase_item);
 
     const related = searchResults
-      .filter(item => item !== title)
-      .slice(0, 5);
+      .filter(item => item.title !== title)
+      .slice(0, 5)
+      .map(item => item.title);
 
     resultContainer.innerHTML = renderArticle(summary, nasaData, facts, related);
   } catch (error) {
@@ -125,19 +171,25 @@ async function showArticle(title) {
   }
 }
 
+/* ---------- Search ---------- */
+
 async function handleSearch(query) {
   resultContainer.innerHTML = '<p class="status">Searching…</p>';
+  lastQuery = query;
+  visibleCount = RESULTS_PER_PAGE;
 
   const predictions = astra.predict(query);
   activePrediction = predictions.length > 0 ? predictions[0] : null;
 
+  // The topic guess is only used to nudge ranking. It is NOT added to the
+  // query itself, so "mars" no longer turns into "mars space mission".
   let hint = "";
   if (activePrediction && activePrediction.confidence >= 0.2) {
     hint = topicHints[activePrediction.topic] || "";
   }
 
   try {
-    searchResults = await searchWikipedia(`${query} ${hint}`.trim());
+    searchResults = await searchTopics(query, hint || "astronomy space");
   } catch (error) {
     resultContainer.innerHTML = '<p class="status">Could not reach Wikipedia. Check your connection and try again.</p>';
     return;
@@ -148,7 +200,12 @@ async function handleSearch(query) {
     return;
   }
 
-  showArticle(searchResults[0]);
+  // Only one match: open it straight away. Otherwise show the list.
+  if (searchResults.length === 1) {
+    showArticle(searchResults[0].title);
+  } else {
+    renderResultsList();
+  }
 }
 
 searchForm.addEventListener("submit", (event) => {
@@ -160,10 +217,23 @@ searchForm.addEventListener("submit", (event) => {
 });
 
 resultContainer.addEventListener("click", (event) => {
+  const moreButton = event.target.closest("[data-more]");
+  if (moreButton) {
+    visibleCount += RESULTS_PER_PAGE;
+    renderResultsList();
+    return;
+  }
+
+  const backButton = event.target.closest("[data-back]");
+  if (backButton) {
+    renderResultsList();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+
   const button = event.target.closest("[data-title]");
   if (button) {
     showArticle(button.dataset.title);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 });
-      
