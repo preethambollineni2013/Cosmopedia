@@ -4,6 +4,9 @@ A small space encyclopedia that runs in the browser. Type any space topic, such 
 
 **Live site:** https://preethambollineni2013.github.io/Cosmopedia/
 
+<img width="1365" height="644" alt="2" src="https://github.com/user-attachments/assets/28ec5e29-e5c7-488e-8ad4-f48c9f7d9b97" />
+
+
 ## Features
 
 - **Search any space topic** and get an article with an overview, a quick facts table, and a photo.
